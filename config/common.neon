@@ -15,3 +15,10 @@ di:
 	export:
 		parameters: no
 		tags: no
+
+database:
+    dsn: 'mysql:host=127.0.0.1;dbname=nette-eshop'
+    user: nette-eshop
+    password: nette-eshop
+    options:
+        lazy: yes
