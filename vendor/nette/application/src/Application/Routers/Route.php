@@ -19,10 +19,10 @@ use Nette;
 class Route extends Nette\Routing\Route implements Nette\Routing\Router
 {
 	private const
-		PresenterKey = 'presenter',
-		ModuleKey = 'module';
+		PRESENTER_KEY = 'presenter',
+		MODULE_KEY = 'module';
 
-	private const UIMeta = [
+	private const UI_META = [
 		'module' => [
 			self::PATTERN => '[a-z][a-z0-9.-]*',
 			self::FILTER_IN => [self::class, 'path2presenter'],
@@ -55,14 +55,13 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 			if (!$presenter) {
 				throw new Nette\InvalidArgumentException("Second argument must be array or string in format Presenter:action, '$metadata' given.");
 			}
-
-			$metadata = [self::PresenterKey => $presenter];
+			$metadata = [self::PRESENTER_KEY => $presenter];
 			if ($action !== '') {
 				$metadata['action'] = $action;
 			}
 		} elseif ($metadata instanceof \Closure) {
 			$metadata = [
-				self::PresenterKey => 'Nette:Micro',
+				self::PRESENTER_KEY => 'Nette:Micro',
 				'callback' => $metadata,
 			];
 		}
@@ -71,7 +70,7 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 			trigger_error(__METHOD__ . '() parameter $flags is deprecated, use RouteList::addRoute(..., ..., $flags) instead.', E_USER_DEPRECATED);
 		}
 
-		$this->defaultMeta += self::UIMeta;
+		$this->defaultMeta += self::UI_META;
 		$this->flags = $flags;
 		parent::__construct($mask, $metadata);
 	}
@@ -86,18 +85,17 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 
 		if ($params === null) {
 			return null;
-		} elseif (!isset($params[self::PresenterKey])) {
+		} elseif (!isset($params[self::PRESENTER_KEY])) {
 			throw new Nette\InvalidStateException('Missing presenter in route definition.');
-		} elseif (!is_string($params[self::PresenterKey])) {
+		} elseif (!is_string($params[self::PRESENTER_KEY])) {
 			return null;
 		}
 
-		$presenter = $params[self::PresenterKey] ?? null;
-		if (isset($this->getMetadata()[self::ModuleKey], $params[self::ModuleKey]) && is_string($presenter)) {
-			$params[self::PresenterKey] = $params[self::ModuleKey] . ':' . $params[self::PresenterKey];
+		$presenter = $params[self::PRESENTER_KEY] ?? null;
+		if (isset($this->getMetadata()[self::MODULE_KEY], $params[self::MODULE_KEY]) && is_string($presenter)) {
+			$params[self::PRESENTER_KEY] = $params[self::MODULE_KEY] . ':' . $params[self::PRESENTER_KEY];
 		}
-
-		unset($params[self::ModuleKey]);
+		unset($params[self::MODULE_KEY]);
 
 		return $params;
 	}
@@ -113,18 +111,18 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 		}
 
 		$metadata = $this->getMetadata();
-		if (isset($metadata[self::ModuleKey])) { // try split into module and [submodule:]presenter parts
-			$presenter = $params[self::PresenterKey];
-			$module = $metadata[self::ModuleKey];
+		if (isset($metadata[self::MODULE_KEY])) { // try split into module and [submodule:]presenter parts
+			$presenter = $params[self::PRESENTER_KEY];
+			$module = $metadata[self::MODULE_KEY];
 			$a = isset($module['fixity'], $module[self::VALUE])
 				&& strncmp($presenter, $module[self::VALUE] . ':', strlen($module[self::VALUE]) + 1) === 0
 				? strlen($module[self::VALUE])
 				: strrpos($presenter, ':');
 			if ($a === false) {
-				$params[self::ModuleKey] = isset($module[self::VALUE]) ? '' : null;
+				$params[self::MODULE_KEY] = isset($module[self::VALUE]) ? '' : null;
 			} else {
-				$params[self::ModuleKey] = substr($presenter, 0, $a);
-				$params[self::PresenterKey] = substr($presenter, $a + 1);
+				$params[self::MODULE_KEY] = substr($presenter, 0, $a);
+				$params[self::PRESENTER_KEY] = substr($presenter, $a + 1);
 			}
 		}
 
@@ -136,13 +134,12 @@ class Route extends Nette\Routing\Route implements Nette\Routing\Router
 	public function getConstantParameters(): array
 	{
 		$res = parent::getConstantParameters();
-		if (isset($res[self::ModuleKey], $res[self::PresenterKey])) {
-			$res[self::PresenterKey] = $res[self::ModuleKey] . ':' . $res[self::PresenterKey];
-		} elseif (isset($this->getMetadata()[self::ModuleKey])) {
-			unset($res[self::PresenterKey]);
+		if (isset($res[self::MODULE_KEY], $res[self::PRESENTER_KEY])) {
+			$res[self::PRESENTER_KEY] = $res[self::MODULE_KEY] . ':' . $res[self::PRESENTER_KEY];
+		} elseif (isset($this->getMetadata()[self::MODULE_KEY])) {
+			unset($res[self::PRESENTER_KEY]);
 		}
-
-		unset($res[self::ModuleKey]);
+		unset($res[self::MODULE_KEY]);
 		return $res;
 	}
 

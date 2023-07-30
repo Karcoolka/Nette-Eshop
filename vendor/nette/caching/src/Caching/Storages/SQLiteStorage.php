@@ -20,7 +20,8 @@ class SQLiteStorage implements Nette\Caching\Storage, Nette\Caching\BulkReader
 {
 	use Nette\SmartObject;
 
-	private \PDO $pdo;
+	/** @var \PDO */
+	private $pdo;
 
 
 	public function __construct(string $path)
@@ -51,18 +52,17 @@ class SQLiteStorage implements Nette\Caching\Storage, Nette\Caching\BulkReader
 	}
 
 
-	public function read(string $key): mixed
+	public function read(string $key)
 	{
 		$stmt = $this->pdo->prepare('SELECT data, slide FROM cache WHERE key=? AND (expire IS NULL OR expire >= ?)');
 		$stmt->execute([$key, time()]);
 		if (!$row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-			return null;
+			return;
 		}
 
 		if ($row['slide'] !== null) {
 			$this->pdo->prepare('UPDATE cache SET expire = ? + slide WHERE key=?')->execute([time(), $key]);
 		}
-
 		return unserialize($row['data']);
 	}
 
@@ -77,15 +77,12 @@ class SQLiteStorage implements Nette\Caching\Storage, Nette\Caching\BulkReader
 			if ($row['slide'] !== null) {
 				$updateSlide[] = $row['key'];
 			}
-
 			$result[$row['key']] = unserialize($row['data']);
 		}
-
 		if (!empty($updateSlide)) {
 			$stmt = $this->pdo->prepare('UPDATE cache SET expire = ? + slide WHERE key IN(?' . str_repeat(',?', count($updateSlide) - 1) . ')');
 			$stmt->execute(array_merge([time()], $updateSlide));
 		}
-
 		return $result;
 	}
 
@@ -97,27 +94,25 @@ class SQLiteStorage implements Nette\Caching\Storage, Nette\Caching\BulkReader
 
 	public function write(string $key, $data, array $dependencies): void
 	{
-		$expire = isset($dependencies[Cache::Expire])
-			? $dependencies[Cache::Expire] + time()
+		$expire = isset($dependencies[Cache::EXPIRATION])
+			? $dependencies[Cache::EXPIRATION] + time()
 			: null;
-		$slide = isset($dependencies[Cache::Sliding])
-			? $dependencies[Cache::Expire]
+		$slide = isset($dependencies[Cache::SLIDING])
+			? $dependencies[Cache::EXPIRATION]
 			: null;
 
 		$this->pdo->exec('BEGIN TRANSACTION');
 		$this->pdo->prepare('REPLACE INTO cache (key, data, expire, slide) VALUES (?, ?, ?, ?)')
 			->execute([$key, serialize($data), $expire, $slide]);
 
-		if (!empty($dependencies[Cache::Tags])) {
-			foreach ($dependencies[Cache::Tags] as $tag) {
+		if (!empty($dependencies[Cache::TAGS])) {
+			foreach ($dependencies[Cache::TAGS] as $tag) {
 				$arr[] = $key;
 				$arr[] = $tag;
 			}
-
 			$this->pdo->prepare('INSERT INTO tags (key, tag) SELECT ?, ?' . str_repeat('UNION SELECT ?, ?', count($arr) / 2 - 1))
 				->execute($arr);
 		}
-
 		$this->pdo->exec('COMMIT');
 	}
 
@@ -131,15 +126,15 @@ class SQLiteStorage implements Nette\Caching\Storage, Nette\Caching\BulkReader
 
 	public function clean(array $conditions): void
 	{
-		if (!empty($conditions[Cache::All])) {
+		if (!empty($conditions[Cache::ALL])) {
 			$this->pdo->prepare('DELETE FROM cache')->execute();
 
 		} else {
 			$sql = 'DELETE FROM cache WHERE expire < ?';
 			$args = [time()];
 
-			if (!empty($conditions[Cache::Tags])) {
-				$tags = $conditions[Cache::Tags];
+			if (!empty($conditions[Cache::TAGS])) {
+				$tags = $conditions[Cache::TAGS];
 				$sql .= ' OR key IN (SELECT key FROM tags WHERE tag IN (?' . str_repeat(',?', count($tags) - 1) . '))';
 				$args = array_merge($args, $tags);
 			}

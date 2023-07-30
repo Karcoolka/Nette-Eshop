@@ -5,17 +5,57 @@ declare(strict_types=1);
 namespace App\Router;
 
 use Nette;
+use Nette\Application\Routers\Route;
 use Nette\Application\Routers\RouteList;
 
-
+/**
+ * Továrna na routovací pravidla.
+ * Řídí směrování a generovaní URL adres v celé aplikaci.
+ * @package App
+ */
 final class RouterFactory
 {
-	use Nette\StaticClass;
+    use Nette\StaticClass;
 
-	public static function createRouter(): RouteList
-	{
-		$router = new RouteList;
-		$router->addRoute('<presenter>/<action>[/<id>]', 'Home:default');
-		return $router;
-	}
+    /**
+     * Vytváří a vrací seznam routovacích pravidel pro aplikaci.
+     * @return RouteList výsledný router pro aplikaci
+     */
+    public static function createRouter(): RouteList
+    {
+        $router = new RouteList;
+        $router->addRoute('kontakt', 'Core:Contact:default');
+        $router->addRoute('administrace', 'Core:Administration:default');
+
+        $router->addRoute('<action>', [
+            'presenter' => 'Core:Administration',
+            'action' => [
+                Route::FILTER_STRICT => true,
+                Route::FILTER_TABLE => [
+                    // řetězec v URL => akce presenteru
+                    'administrace' => 'default',
+                    'prihlaseni' => 'login',
+                    'odhlasit' => 'logout',
+                    'registrace' => 'register'
+                ]
+            ]
+        ]);
+
+        $router->addRoute('<action>[/<url>]', [
+            'presenter' => 'Core:Article',
+            'action' => [
+                Route::FILTER_STRICT => true,
+                Route::FILTER_TABLE => [
+                    // řetězec v URL => akce presenteru
+                    'seznam-clanku' => 'list',
+                    'editor' => 'editor',
+                    'odstranit' => 'remove'
+                ]
+            ]
+        ]);
+
+        $router->addRoute('[<url>]', 'Core:Article:default');
+
+        return $router;
+    }
 }

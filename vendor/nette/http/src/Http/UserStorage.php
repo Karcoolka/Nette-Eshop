@@ -56,7 +56,6 @@ class UserStorage implements Nette\Security\IUserStorage
 			$section->reason = self::MANUAL;
 			$section->authTime = null;
 		}
-
 		return $this;
 	}
 
@@ -102,7 +101,6 @@ class UserStorage implements Nette\Security\IUserStorage
 			$this->namespace = $namespace;
 			$this->sessionSection = null;
 		}
-
 		return $this;
 	}
 
@@ -175,7 +173,6 @@ class UserStorage implements Nette\Security\IUserStorage
 					unset($section->identity);
 				}
 			}
-
 			$section->expireTime = time() + $section->expireDelta; // sliding expiration
 		}
 

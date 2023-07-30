@@ -14,40 +14,21 @@ use Nette;
 
 /**
  * Provides the base class for a generic list (items can be accessed by index).
- * @template T
  */
 class ArrayList implements \ArrayAccess, \Countable, \IteratorAggregate
 {
 	use Nette\SmartObject;
 
-	private array $list = [];
-
-
-	/**
-	 * Transforms array to ArrayList.
-	 * @param  array<T>  $array
-	 */
-	public static function from(array $array): static
-	{
-		if (!Arrays::isList($array)) {
-			throw new Nette\InvalidArgumentException('Array is not valid list.');
-		}
-
-		$obj = new static;
-		$obj->list = $array;
-		return $obj;
-	}
+	/** @var mixed[] */
+	private $list = [];
 
 
 	/**
 	 * Returns an iterator over all items.
-	 * @return \Iterator<int, T>
 	 */
-	public function &getIterator(): \Iterator
+	public function getIterator(): \ArrayIterator
 	{
-		foreach ($this->list as &$item) {
-			yield $item;
-		}
+		return new \ArrayIterator($this->list);
 	}
 
 
@@ -63,7 +44,7 @@ class ArrayList implements \ArrayAccess, \Countable, \IteratorAggregate
 	/**
 	 * Replaces or appends a item.
 	 * @param  int|null  $index
-	 * @param  T  $value
+	 * @param  mixed  $value
 	 * @throws Nette\OutOfRangeException
 	 */
 	public function offsetSet($index, $value): void
@@ -83,15 +64,14 @@ class ArrayList implements \ArrayAccess, \Countable, \IteratorAggregate
 	/**
 	 * Returns a item.
 	 * @param  int  $index
-	 * @return T
+	 * @return mixed
 	 * @throws Nette\OutOfRangeException
 	 */
-	public function offsetGet($index): mixed
+	public function offsetGet($index)
 	{
 		if (!is_int($index) || $index < 0 || $index >= count($this->list)) {
 			throw new Nette\OutOfRangeException('Offset invalid or out of range');
 		}
-
 		return $this->list[$index];
 	}
 
@@ -116,16 +96,15 @@ class ArrayList implements \ArrayAccess, \Countable, \IteratorAggregate
 		if (!is_int($index) || $index < 0 || $index >= count($this->list)) {
 			throw new Nette\OutOfRangeException('Offset invalid or out of range');
 		}
-
 		array_splice($this->list, $index, 1);
 	}
 
 
 	/**
 	 * Prepends a item.
-	 * @param  T  $value
+	 * @param  mixed  $value
 	 */
-	public function prepend(mixed $value): void
+	public function prepend($value): void
 	{
 		$first = array_slice($this->list, 0, 1);
 		$this->offsetSet(0, $value);

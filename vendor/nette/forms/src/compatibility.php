@@ -11,7 +11,7 @@ namespace Nette\Forms;
 
 if (false) {
 	/** @deprecated use Nette\Forms\Control */
-	interface IControl extends Control
+	class IControl extends Control
 	{
 	}
 } elseif (!interface_exists(IControl::class)) {
@@ -20,7 +20,7 @@ if (false) {
 
 if (false) {
 	/** @deprecated use Nette\Forms\FormRenderer */
-	interface IFormRenderer extends FormRenderer
+	class IFormRenderer extends FormRenderer
 	{
 	}
 } elseif (!interface_exists(IFormRenderer::class)) {
@@ -29,7 +29,7 @@ if (false) {
 
 if (false) {
 	/** @deprecated use Nette\Forms\SubmitterControl */
-	interface ISubmitterControl extends SubmitterControl
+	class ISubmitterControl extends SubmitterControl
 	{
 	}
 } elseif (!interface_exists(ISubmitterControl::class)) {

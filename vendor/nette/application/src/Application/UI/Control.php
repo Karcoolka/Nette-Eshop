@@ -47,7 +47,6 @@ abstract class Control extends Component implements Renderable
 		if ($this->template === null) {
 			$this->template = $this->createTemplate();
 		}
-
 		return $this->template;
 	}
 
@@ -92,7 +91,6 @@ abstract class Control extends Component implements Renderable
 
 	/**
 	 * Descendant can override this method to customize template compile-time filters.
-	 * @deprecated
 	 */
 	public function templatePrepareFilters(Template $template): void
 	{
@@ -124,7 +122,7 @@ abstract class Control extends Component implements Renderable
 	/**
 	 * Forces control or its snippet to repaint.
 	 */
-	public function redrawControl(?string $snippet = null, bool $redraw = true): void
+	public function redrawControl(string $snippet = null, bool $redraw = true): void
 	{
 		if ($redraw) {
 			$this->invalidSnippets[$snippet ?? "\0"] = true;
@@ -141,7 +139,7 @@ abstract class Control extends Component implements Renderable
 	/**
 	 * Is required to repaint the control or its snippet?
 	 */
-	public function isControlInvalid(?string $snippet = null): bool
+	public function isControlInvalid(string $snippet = null): bool
 	{
 		if ($snippet !== null) {
 			return $this->invalidSnippets[$snippet] ?? isset($this->invalidSnippets["\0"]);
@@ -158,6 +156,7 @@ abstract class Control extends Component implements Renderable
 						// $this->invalidSnippets['__child'] = true; // as cache
 						return true;
 					}
+
 				} elseif ($component instanceof Nette\ComponentModel\IContainer) {
 					$queue[] = $component;
 				}

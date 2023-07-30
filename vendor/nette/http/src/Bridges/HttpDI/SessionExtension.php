@@ -37,11 +37,11 @@ class SessionExtension extends Nette\DI\CompilerExtension
 	{
 		return Expect::structure([
 			'debugger' => Expect::bool(false),
-			'autoStart' => Expect::anyOf('smart', 'always', 'never', true, false)->firstIsDefault(),
+			'autoStart' => Expect::anyOf('smart', true, false)->firstIsDefault(),
 			'expiration' => Expect::string()->dynamic(),
 			'handler' => Expect::string()->dynamic(),
 			'readAndClose' => Expect::bool(),
-			'cookieSamesite' => Expect::anyOf(IResponse::SameSiteLax, IResponse::SameSiteStrict, IResponse::SameSiteNone, true)
+			'cookieSamesite' => Expect::anyOf(IResponse::SAME_SITE_LAX, IResponse::SAME_SITE_STRICT, IResponse::SAME_SITE_NONE, true)
 				->firstIsDefault(),
 		])->otherItems('mixed');
 	}
@@ -58,25 +58,20 @@ class SessionExtension extends Nette\DI\CompilerExtension
 		if ($config->expiration) {
 			$session->addSetup('setExpiration', [$config->expiration]);
 		}
-
 		if ($config->handler) {
 			$session->addSetup('setHandler', [$config->handler]);
 		}
-
 		if (($config->cookieDomain ?? null) === 'domain') {
 			$config->cookieDomain = $builder::literal('$this->getByType(Nette\Http\IRequest::class)->getUrl()->getDomain(2)');
 		}
-
 		if (isset($config->cookieSecure)) {
-			trigger_error("The item 'session\u{a0}›\u{a0}cookieSecure' is deprecated, use 'http\u{a0}›\u{a0}cookieSecure' (it has default value 'auto').", E_USER_DEPRECATED);
+			trigger_error("The item 'session › cookieSecure' is deprecated, use 'http › cookieSecure' (it has default value 'auto').", E_USER_DEPRECATED);
 			unset($config->cookieSecure);
 		}
-
 		if ($config->cookieSamesite === true) {
-			trigger_error("In 'session\u{a0}›\u{a0}cookieSamesite' replace true with 'Lax'.", E_USER_DEPRECATED);
-			$config->cookieSamesite = IResponse::SameSiteLax;
+			trigger_error("In 'session › cookieSamesite' replace true with 'Lax'.", E_USER_DEPRECATED);
+			$config->cookieSamesite = IResponse::SAME_SITE_LAX;
 		}
-
 		$this->compiler->addExportedType(Nette\Http\IRequest::class);
 
 		if ($this->debugMode && $config->debugger) {
@@ -87,14 +82,9 @@ class SessionExtension extends Nette\DI\CompilerExtension
 
 		$options = (array) $config;
 		unset($options['expiration'], $options['handler'], $options['autoStart'], $options['debugger']);
-		if ($config->autoStart === 'never') {
-			$options['autoStart'] = false;
-		}
-
-		if ($config->readAndClose === null) {
+		if ($options['readAndClose'] === null) {
 			unset($options['readAndClose']);
 		}
-
 		if (!empty($options)) {
 			$session->addSetup('setOptions', [$options]);
 		}
@@ -107,9 +97,9 @@ class SessionExtension extends Nette\DI\CompilerExtension
 			$name = $this->prefix('session');
 
 			if ($config->autoStart === 'smart') {
-				$this->initialization->addBody('$this->getService(?)->autoStart(false);', [$name]);
+				$this->initialization->addBody('$this->getService(?)->exists() && $this->getService(?)->start();', [$name, $name]);
 
-			} elseif ($config->autoStart === 'always' || $config->autoStart === true) {
+			} elseif ($config->autoStart) {
 				$this->initialization->addBody('$this->getService(?)->start();', [$name]);
 			}
 		}

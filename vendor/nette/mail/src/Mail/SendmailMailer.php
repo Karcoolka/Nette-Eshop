@@ -19,11 +19,15 @@ class SendmailMailer implements Mailer
 {
 	use Nette\SmartObject;
 
-	public ?string $commandArgs = null;
-	private ?Signer $signer = null;
+	/** @var string|null */
+	public $commandArgs;
+
+	/** @var Signer|null */
+	private $signer;
 
 
-	public function setSigner(Signer $signer): static
+	/** @return static */
+	public function setSigner(Signer $signer): self
 	{
 		$this->signer = $signer;
 		return $this;
@@ -39,7 +43,6 @@ class SendmailMailer implements Mailer
 		if (!function_exists('mail')) {
 			throw new SendException('Unable to send email: mail() has been disabled.');
 		}
-
 		$tmp = clone $mail;
 		$tmp->setHeader('Subject', null);
 		$tmp->setHeader('To', null);
@@ -50,20 +53,14 @@ class SendmailMailer implements Mailer
 		$parts = explode(Message::EOL . Message::EOL, $data, 2);
 
 		$args = [
-			(string) $mail->getEncodedHeader('To'),
-			(string) $mail->getEncodedHeader('Subject'),
-			$parts[1],
-			$parts[0],
+			str_replace(Message::EOL, PHP_EOL, (string) $mail->getEncodedHeader('To')),
+			str_replace(Message::EOL, PHP_EOL, (string) $mail->getEncodedHeader('Subject')),
+			str_replace(Message::EOL, PHP_EOL, $parts[1]),
+			str_replace(Message::EOL, PHP_EOL, $parts[0]),
 		];
-
-		if ($from = $mail->getFrom()) {
-			$args[] = '-f' . key($from);
-		}
-
 		if ($this->commandArgs) {
 			$args[] = $this->commandArgs;
 		}
-
 		$res = Nette\Utils\Callback::invokeSafe('mail', $args, function (string $message) use (&$info): void {
 			$info = ": $message";
 		});

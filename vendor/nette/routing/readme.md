@@ -14,7 +14,7 @@ The router is responsible for everything about URLs so that you no longer have t
 - a few notes about SEO redirection
 - and we'll show you how to write your own router
 
-It requires PHP version 7.1 and supports PHP up to 8.2.
+It requires PHP version 7.1 and supports PHP up to 8.0.
 
 Documentation can be found on the [website](https://doc.nette.org/routing).
 
@@ -240,13 +240,13 @@ use Nette\Routing\Route;
 
 $router->addRoute('<controller>/<action>[/<id>]', [
 	'controller' => [
-		Route::Value => 'Homepage',
+		Route::VALUE => 'Homepage',
 	],
 	'action' => [
-		Route::Value => 'default',
+		Route::VALUE => 'default',
 	],
 	'id' => [
-		Route::Pattern => '\d+',
+		Route::PATTERN => '\d+',
 	],
 ]);
 ```
@@ -270,8 +270,8 @@ use Nette\Routing\Route;
 
 $router->addRoute('<controller>/<action>', [
 	'controller' => [
-		Route::Value => 'Homepage',
-		Route::FilterTable => [
+		Route::VALUE => 'Homepage',
+		Route::FILTER_TABLE => [
 			// string in URL => controller
 			'produkt' => 'Product',
 			'einkaufswagen' => 'Cart',
@@ -279,8 +279,8 @@ $router->addRoute('<controller>/<action>', [
 		],
 	],
 	'action' => [
-		Route::Value => 'default',
-		Route::FilterTable => [
+		Route::VALUE => 'default',
+		Route::FILTER_TABLE => [
 			'liste' => 'list',
 		],
 	],
@@ -298,9 +298,9 @@ use Nette\Routing\Route;
 
 $router->addRoute('<controller>/<action>/<id>', [
 	'controller' => [
-		Route::Value => 'Homepage',
-		Route::FilterIn => function (string $s): string { ... },
-		Route::FilterOut => function (string $s): string { ... },
+		Route::VALUE => 'Homepage',
+		Route::FILTER_IN => function (string $s): string { ... },
+		Route::FILTER_OUT => function (string $s): string { ... },
 	],
 	'action' => 'default',
 	'id' => null,
@@ -322,8 +322,8 @@ $router->addRoute('<controller>/<action>', [
 	'controller' => 'Homepage',
 	'action' => 'default',
 	null => [
-		Route::FilterIn => function (array $params): array { ... },
-		Route::FilterOut => function (array $params): array { ... },
+		Route::FILTER_IN => function (array $params): array { ... },
+		Route::FILTER_OUT => function (array $params): array { ... },
 	],
 ]);
 ```

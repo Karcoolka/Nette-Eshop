@@ -14,7 +14,6 @@ use Nette;
 
 /**
  * PHP directives definition.
- * @deprecated  use Nette\Bootstrap\Extensions\PhpExtension
  */
 final class PhpExtension extends Nette\DI\CompilerExtension
 {
@@ -26,7 +25,6 @@ final class PhpExtension extends Nette\DI\CompilerExtension
 
 	public function loadConfiguration()
 	{
-		trigger_error(self::class . ' is deprecated, use Nette\Bootstrap\Extensions\PhpExtension.', E_USER_DEPRECATED);
 		foreach ($this->getConfig() as $name => $value) {
 			if ($value === null) {
 				continue;

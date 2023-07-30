@@ -17,25 +17,13 @@ sanitization filter.
 
 Documentation can be found on the [website](https://doc.nette.org/http-request-response).
 
-
-[Support Me](https://github.com/sponsors/dg)
---------------------------------------------
-
-Do you like Nette DI? Are you looking forward to the new features?
-
-[![Buy me a coffee](https://files.nette.org/icons/donation-3.svg)](https://github.com/sponsors/dg)
-
-Thank you!
-
-
-Installation
-------------
+Installation:
 
 ```shell
 composer require nette/http
 ```
 
-It requires PHP version 7.2 and supports PHP up to 8.2.
+It requires PHP version 7.2 and supports PHP up to 8.0.
 
 
 HTTP Request
@@ -232,7 +220,7 @@ setCode(int $code, string $reason = null)
 Changes a status [response code](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10). For better source code readability it is recommended to use [predefined constants](https://api.nette.org/3.0/Nette/Http/IResponse.html) instead of actual numbers.
 
 ```php
-$httpResponse->setCode(Nette\Http\Response::S404_NotFound);
+$httpResponse->setCode(Nette\Http\Response::S404_NOT_FOUND);
 ```
 
 getCode(): int

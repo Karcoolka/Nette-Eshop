@@ -102,7 +102,6 @@ class Application
 					Arrays::invoke($this->onError, $this, $e);
 				}
 			}
-
 			Arrays::invoke($this->onShutdown, $this, $e);
 			throw $e;
 		}
@@ -158,7 +157,6 @@ class Application
 				? $e
 				: new BadRequestException($e->getMessage(), 0, $e);
 		}
-
 		Arrays::invoke($this->onPresenter, $this, $this->presenter);
 		$response = $this->presenter->run(clone $request);
 
@@ -177,7 +175,6 @@ class Application
 		if (!$e instanceof BadRequestException && $this->httpResponse instanceof Nette\Http\Response) {
 			$this->httpResponse->warnOnBuffer = false;
 		}
-
 		if (!$this->httpResponse->isSent()) {
 			$this->httpResponse->setCode($e instanceof BadRequestException ? ($e->getHttpCode() ?: 404) : 500);
 		}

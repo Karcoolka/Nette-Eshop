@@ -19,69 +19,68 @@ class SecurityPolicy implements Latte\Policy
 {
 	use Latte\Strict;
 
-	public const All = ['*'];
-	public const ALL = self::All;
+	public const ALL = ['*'];
 
 	/** @var string[] */
-	private array $tags = [];
+	private $macros = [];
 
 	/** @var string[] */
-	private array $filters = [];
+	private $filters = [];
 
 	/** @var string[] */
-	private array $functions = [];
+	private $functions = [];
 
 	/** @var string[][] */
-	private array $methods = [];
+	private $methods = [];
 
 	/** @var string[][] */
-	private array $properties = [];
+	private $properties = [];
 
 	/** @var array<string, array<string, bool>> */
-	private array $methodCache = [];
+	private $methodCache = [];
 
 	/** @var array<string, array<string, bool>> */
-	private array $propertyCache = [];
+	private $propertyCache = [];
 
 
 	public static function createSafePolicy(): self
 	{
 		$policy = new self;
 
-		// does not include: contentType, debugbreak, dump, extends, import, include, layout,
+		// does not include: contentType, debugbreak, dump, extends, import, include, includeblock, layout,
 		// php (but 'do' is allowed), sandbox, snippet, snippetArea, templatePrint, varPrint, embed
-		$policy->allowTags([
+		$policy->allowMacros([
 			'_', '=', 'attr', 'block', 'breakIf', 'capture', 'case', 'class', 'continueIf', 'default',
 			'define', 'do', 'else', 'elseif', 'elseifset', 'first', 'for', 'foreach', 'if', 'ifchanged',
 			'ifcontent', 'iterateWhile', 'ifset', 'l', 'last', 'r', 'rollback', 'sep', 'skipIf', 'spaceless',
-			'switch', 'templateType', 'translate', 'try', 'var', 'varType', 'while',
+			'switch', 'templateType', 'try', 'var', 'varType', 'while',
 		]);
 
 		// does not include: dataStream, noEscape, noCheck
 		$policy->allowFilters([
-			'batch', 'breaklines', 'breakLines', 'bytes', 'capitalize', 'ceil', 'clamp', 'date', 'escapeCss', 'escapeHtml',
+			'batch', 'breakLines', 'bytes', 'capitalize', 'ceil', 'clamp', 'date', 'escapeCss', 'escapeHtml',
 			'escapeHtmlComment', 'escapeICal', 'escapeJs', 'escapeUrl', 'escapeXml', 'explode', 'first',
 			'firstUpper', 'floor', 'checkUrl', 'implode', 'indent', 'join', 'last', 'length', 'lower',
 			'number', 'padLeft', 'padRight', 'query', 'random', 'repeat', 'replace', 'replaceRe', 'reverse',
-			'round', 'slice', 'sort', 'spaceless', 'split', 'strip', 'striphtml', 'stripHtml', 'striptags', 'stripTags', 'substr',
+			'round', 'slice', 'sort', 'spaceless', 'split', 'strip', 'stripHtml', 'stripTags', 'substr',
 			'trim', 'truncate', 'upper', 'webalize',
 		]);
 
 		$policy->allowFunctions(['clamp', 'divisibleBy', 'even', 'first', 'last', 'odd', 'slice']);
 
-		$policy->allowMethods(Latte\Essential\CachingIterator::class, self::All);
-		$policy->allowProperties(Latte\Essential\CachingIterator::class, self::All);
+		$policy->allowMethods(Latte\Runtime\CachingIterator::class, self::ALL);
+		$policy->allowProperties(Latte\Runtime\CachingIterator::class, self::ALL);
 
 		return $policy;
 	}
 
 
 	/**
-	 * @param  string[]  $tags
+	 * @param  string[]  $macros
 	 */
-	public function allowTags(array $tags): self
+	public function allowMacros(array $macros): self
 	{
-		$this->tags += array_flip(array_map('strtolower', $tags));
+		$this->macros += array_flip(array_map('strtolower', $macros));
 		return $this;
 	}
 
@@ -128,9 +127,9 @@ class SecurityPolicy implements Latte\Policy
 	}
 
 
-	public function isTagAllowed(string $tag): bool
+	public function isMacroAllowed(string $macro): bool
 	{
-		return isset($this->tags[strtolower($tag)]) || isset($this->tags['*']);
+		return isset($this->macros[strtolower($macro)]) || isset($this->macros['*']);
 	}
 
 
@@ -149,18 +148,16 @@ class SecurityPolicy implements Latte\Policy
 	public function isMethodAllowed(string $class, string $method): bool
 	{
 		$method = strtolower($method);
+		/** @var bool|null $res */
 		$res = &$this->methodCache[$class][$method];
-		assert(is_bool($res) || $res === null);
 		if (isset($res)) {
 			return $res;
 		}
-
 		foreach ($this->methods as $c => $methods) {
 			if (is_a($class, $c, true) && (isset($methods[$method]) || isset($methods['*']))) {
 				return $res = true;
 			}
 		}
-
 		return $res = false;
 	}
 
@@ -168,18 +165,16 @@ class SecurityPolicy implements Latte\Policy
 	public function isPropertyAllowed(string $class, string $property): bool
 	{
 		$property = strtolower($property);
+		/** @var bool|null $res */
 		$res = &$this->propertyCache[$class][$property];
-		assert(is_bool($res) || $res === null);
 		if (isset($res)) {
 			return $res;
 		}
-
 		foreach ($this->properties as $c => $properties) {
 			if (is_a($class, $c, true) && (isset($properties[$property]) || isset($properties['*']))) {
 				return $res = true;
 			}
 		}
-
 		return $res = false;
 	}
 }

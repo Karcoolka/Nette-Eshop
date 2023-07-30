@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\CoreModule\Presenters;
 
+use App\CoreModule\Model\ArticleManager;
 use App\Presenters\BasePresenter;
 use Nette\Application\AbortException;
 use Nette\Application\BadRequestException;
@@ -15,6 +18,30 @@ use Nette\Utils\ArrayHash;
  */
 class ArticlePresenter extends BasePresenter
 {
+    /** @var string URL výchozího článku. */
+    private string $defaultArticleUrl;
+
+    /** @var ArticleManager Model pro správu s článků. */
+    private ArticleManager $articleManager;
+
+    /**
+     * Konstruktor s nastavením URL výchozího článku a injektovaným modelem pro správu článků.
+     * @param string         $defaultArticleUrl URL výchozího článku
+     * @param ArticleManager $articleManager    automaticky injektovaný model pro správu článků
+     */
+    public function __construct(string $defaultArticleUrl, ArticleManager $articleManager)
+    {
+        parent::__construct();
+        $this->defaultArticleUrl = $defaultArticleUrl;
+        $this->articleManager = $articleManager;
+    }
+
+    /** Načte a předá seznam článků do šablony. */
+    public function renderList()
+    {
+        $this->template->articles = $this->articleManager->getArticles();
+    }
+
     /**
      * Načte a vykreslí úvodní článek do šablony.
      * @param string|null $url URL článku
@@ -55,14 +82,14 @@ class ArticlePresenter extends BasePresenter
     {
         if ($url) {
             if (!($article = $this->articleManager->getArticle($url)))
-                $this->flashMessage('Článek nebyl nalezen.', self::MSG_ERROR);
+                $this->flashMessage('Článek nebyl nalezen.', self::MSG_ERROR); // Výpis chybové hlášky.
             else $this['editorForm']->setDefaults($article); // Předání hodnot článku do editačního formuláře.
         }
     }
 
     /**
      * Vytváří a vrací formulář pro editaci článků.
-     * @return \Nette\Application\UI\Form formulář pro editaci článků
+     * @return Form formulář pro editaci článků
      */
     protected function createComponentEditorForm()
     {
@@ -88,5 +115,4 @@ class ArticlePresenter extends BasePresenter
 
         return $form;
     }
-
 }

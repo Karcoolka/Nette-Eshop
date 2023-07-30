@@ -10,11 +10,8 @@ declare(strict_types=1);
 namespace Nette\DI\Definitions;
 
 use Nette;
-use Nette\DI\Helpers;
 use Nette\DI\ServiceCreationException;
-use Nette\PhpGenerator as Php;
 use Nette\Utils\Reflection;
-use Nette\Utils\Type;
 
 
 /**
@@ -22,7 +19,7 @@ use Nette\Utils\Type;
  */
 final class FactoryDefinition extends Definition
 {
-	private const MethodCreate = 'create';
+	private const METHOD_CREATE = 'create';
 
 	/** @var array */
 	public $parameters = [];
@@ -38,33 +35,17 @@ final class FactoryDefinition extends Definition
 
 
 	/** @return static */
-	public function setImplement(string $interface)
+	public function setImplement(string $type)
 	{
-		if (!interface_exists($interface)) {
-			throw new Nette\InvalidArgumentException(sprintf(
-				"Service '%s': Interface '%s' not found.",
-				$this->getName(),
-				$interface
-			));
+		if (!interface_exists($type)) {
+			throw new Nette\InvalidArgumentException("Service '{$this->getName()}': Interface '$type' not found.");
 		}
-
-		$rc = new \ReflectionClass($interface);
+		$rc = new \ReflectionClass($type);
 		$method = $rc->getMethods()[0] ?? null;
-		if (!$method || $method->isStatic() || $method->name !== self::MethodCreate || count($rc->getMethods()) > 1) {
-			throw new Nette\InvalidArgumentException(sprintf(
-				"Service '%s': Interface %s must have just one non-static method create().",
-				$this->getName(),
-				$interface
-			));
+		if (!$method || $method->isStatic() || $method->name !== self::METHOD_CREATE || count($rc->getMethods()) > 1) {
+			throw new Nette\InvalidArgumentException("Service '{$this->getName()}': Interface $type must have just one non-static method create().");
 		}
-
-		try {
-			Helpers::ensureClassType(Type::fromReflection($method), "return type of $interface::create()");
-		} catch (Nette\DI\ServiceCreationException $e) {
-			trigger_error($e->getMessage(), E_USER_DEPRECATED);
-		}
-
-		return parent::setType($interface);
+		return parent::setType($type);
 	}
 
 
@@ -95,31 +76,89 @@ final class FactoryDefinition extends Definition
 	}
 
 
-	/** @deprecated */
+	/**
+	 * @deprecated use ->getResultDefinition()->setFactory()
+	 * @return static
+	 */
+	public function setFactory($factory, array $args = [])
+	{
+		trigger_error(sprintf('Service %s: %s() is deprecated, use ->getResultDefinition()->setFactory()', $this->getName(), __METHOD__), E_USER_DEPRECATED);
+		$this->resultDefinition->setFactory($factory, $args);
+		return $this;
+	}
+
+
+	/** @deprecated use ->getResultDefinition()->getFactory() */
+	public function getFactory(): ?Statement
+	{
+		trigger_error(sprintf('Service %s: %s() is deprecated, use ->getResultDefinition()->getFactory()', $this->getName(), __METHOD__), E_USER_DEPRECATED);
+		return $this->resultDefinition->getFactory();
+	}
+
+
+	/**
+	 * @deprecated use ->getResultDefinition()->getEntity()
+	 * @return mixed
+	 */
+	public function getEntity()
+	{
+		trigger_error(sprintf('Service %s: %s() is deprecated, use ->getResultDefinition()->getEntity()', $this->getName(), __METHOD__), E_USER_DEPRECATED);
+		return $this->resultDefinition->getEntity();
+	}
+
+
+	/**
+	 * @deprecated use ->getResultDefinition()->setArguments()
+	 * @return static
+	 */
+	public function setArguments(array $args = [])
+	{
+		trigger_error(sprintf('Service %s: %s() is deprecated, use ->getResultDefinition()->setArguments()', $this->getName(), __METHOD__), E_USER_DEPRECATED);
+		$this->resultDefinition->setArguments($args);
+		return $this;
+	}
+
+
+	/**
+	 * @deprecated use ->getResultDefinition()->setSetup()
+	 * @return static
+	 */
+	public function setSetup(array $setup)
+	{
+		trigger_error(sprintf('Service %s: %s() is deprecated, use ->getResultDefinition()->setSetup()', $this->getName(), __METHOD__), E_USER_DEPRECATED);
+		$this->resultDefinition->setSetup($setup);
+		return $this;
+	}
+
+
+	/** @deprecated use ->getResultDefinition()->getSetup() */
+	public function getSetup(): array
+	{
+		trigger_error(sprintf('Service %s: %s() is deprecated, use ->getResultDefinition()->getSetup()', $this->getName(), __METHOD__), E_USER_DEPRECATED);
+		return $this->resultDefinition->getSetup();
+	}
+
+
+	/**
+	 * @deprecated use ->getResultDefinition()->addSetup()
+	 * @return static
+	 */
+	public function addSetup($entity, array $args = [])
+	{
+		trigger_error(sprintf('Service %s: %s() is deprecated, use ->getResultDefinition()->addSetup()', $this->getName(), __METHOD__), E_USER_DEPRECATED);
+		$this->resultDefinition->addSetup($entity, $args);
+		return $this;
+	}
+
+
+	/** @return static */
 	public function setParameters(array $params)
 	{
-		if ($params) {
-			$old = $new = [];
-			foreach ($params as $k => $v) {
-				$tmp = explode(' ', is_int($k) ? $v : $k);
-				$old[] = '%' . end($tmp) . '%';
-				$new[] = '$' . end($tmp);
-			}
-
-			trigger_error(sprintf(
-				"Service '%s': Option 'parameters' is deprecated and should be removed. The %s should be replaced with %s in configuration.",
-				$this->getName(),
-				implode(', ', $old),
-				implode(', ', $new)
-			), E_USER_DEPRECATED);
-		}
-
 		$this->parameters = $params;
 		return $this;
 	}
 
 
-	/** @deprecated */
 	public function getParameters(): array
 	{
 		return $this->parameters;
@@ -128,33 +167,29 @@ final class FactoryDefinition extends Definition
 
 	public function resolveType(Nette\DI\Resolver $resolver): void
 	{
-		$interface = $this->getType();
-		if (!$interface) {
-			throw new ServiceCreationException('Type is missing in definition of service.');
-		}
-
-		$method = new \ReflectionMethod($interface, self::MethodCreate);
-		$type = Type::fromReflection($method) ?? Helpers::getReturnTypeAnnotation($method);
-
 		$resultDef = $this->resultDefinition;
 		try {
 			$resolver->resolveDefinition($resultDef);
+			return;
 		} catch (ServiceCreationException $e) {
-			if ($resultDef->getType()) {
-				throw $e;
+		}
+
+		if (!$resultDef->getType()) {
+			$interface = $this->getType();
+			if (!$interface) {
+				throw new ServiceCreationException('Type is missing in definition of service.');
 			}
-
-			$resultDef->setType(Helpers::ensureClassType($type, "return type of $interface::create()"));
-			$resolver->resolveDefinition($resultDef);
+			$method = new \ReflectionMethod($interface, self::METHOD_CREATE);
+			$returnType = Nette\DI\Helpers::getReturnType($method);
+			if (!$returnType) {
+				throw new ServiceCreationException("Method $interface::create() has not return type hint or annotation @return.");
+			} elseif (!class_exists($returnType) && !interface_exists($returnType)) {
+				throw new ServiceCreationException("Check a type hint or annotation @return of the $interface::create() method, class '$returnType' cannot be found.");
+			}
+			$resultDef->setType($returnType);
 		}
 
-		if ($type && !$type->allows($resultDef->getType())) {
-			throw new ServiceCreationException(sprintf(
-				'Factory for %s cannot create incompatible %s type.',
-				$type,
-				$resultDef->getType()
-			));
-		}
+		$resolver->resolveDefinition($resultDef);
 	}
 
 
@@ -167,14 +202,9 @@ final class FactoryDefinition extends Definition
 				$this->completeParameters($resolver);
 			}
 
-			$this->convertArguments($resultDef->getCreator()->arguments);
-			foreach ($resultDef->getSetup() as $setup) {
-				$this->convertArguments($setup->arguments);
-			}
-
-			if ($resultDef->getEntity() instanceof Reference && !$resultDef->getCreator()->arguments) {
-				$resultDef->setCreator([ // render as $container->createMethod()
-					new Reference(Nette\DI\ContainerBuilder::ThisContainer),
+			if ($resultDef->getEntity() instanceof Reference && !$resultDef->getFactory()->arguments) {
+				$resultDef->setFactory([ // render as $container->createMethod()
+					new Reference(Nette\DI\ContainerBuilder::THIS_CONTAINER),
 					Nette\DI\Container::getMethodName($resultDef->getEntity()->getValue()),
 				]);
 			}
@@ -187,11 +217,11 @@ final class FactoryDefinition extends Definition
 	private function completeParameters(Nette\DI\Resolver $resolver): void
 	{
 		$interface = $this->getType();
-		$method = new \ReflectionMethod($interface, self::MethodCreate);
+		$method = new \ReflectionMethod($interface, self::METHOD_CREATE);
 
 		$ctorParams = [];
 		if (
-			($class = $resolver->resolveEntityType($this->resultDefinition->getCreator()))
+			($class = $resolver->resolveEntityType($this->resultDefinition->getFactory()))
 			&& ($ctor = (new \ReflectionClass($class))->getConstructor())
 		) {
 			foreach ($ctor->getParameters() as $param) {
@@ -200,31 +230,26 @@ final class FactoryDefinition extends Definition
 		}
 
 		foreach ($method->getParameters() as $param) {
-			$methodType = Type::fromReflection($param);
+			$methodHint = Reflection::getParameterTypes($param);
 			if (isset($ctorParams[$param->name])) {
 				$ctorParam = $ctorParams[$param->name];
-				$ctorType = Type::fromReflection($ctorParam);
-				if ($ctorType && !$ctorType->allows((string) $methodType)) {
-					throw new ServiceCreationException(sprintf(
-						"Type of \$%s in %s::create() doesn't match type in %s constructor.",
-						$param->name,
-						$interface,
-						$class
-					));
+				$ctorHint = Reflection::getParameterTypes($ctorParam);
+				if ($methodHint !== $ctorHint
+					&& !is_a((string) reset($methodHint), (string) reset($ctorHint), true)
+				) {
+					throw new ServiceCreationException("Type hint for \${$param->name} in $interface::create() doesn't match type hint in $class constructor.");
 				}
-
-				$this->resultDefinition->getCreator()->arguments[$ctorParam->getPosition()] = new Php\Literal('$' . $ctorParam->name);
+				$this->resultDefinition->getFactory()->arguments[$ctorParam->getPosition()] = Nette\DI\ContainerBuilder::literal('$' . $ctorParam->name);
 
 			} elseif (!$this->resultDefinition->getSetup()) {
 				$hint = Nette\Utils\Helpers::getSuggestion(array_keys($ctorParams), $param->name);
-				throw new ServiceCreationException(sprintf(
-					'Unused parameter $%s when implementing method %s::create()',
-					$param->name,
-					$interface
-				) . ($hint ? ", did you mean \${$hint}?" : '.'));
+				throw new ServiceCreationException("Unused parameter \${$param->name} when implementing method $interface::create()" . ($hint ? ", did you mean \${$hint}?" : '.'));
 			}
 
-			$paramDef = $methodType . ' ' . $param->name;
+			$paramDef = PHP_VERSION_ID < 80000
+				? ($methodHint && $param->allowsNull() ? '?' : '') . reset($methodHint)
+				: implode('|', $methodHint);
+			$paramDef .= ' ' . $param->name;
 			if ($param->isDefaultValueAvailable()) {
 				$this->parameters[$paramDef] = Reflection::getParameterDefaultValue($param);
 			} else {
@@ -234,19 +259,9 @@ final class FactoryDefinition extends Definition
 	}
 
 
-	public function convertArguments(array &$args): void
+	public function generateMethod(Nette\PhpGenerator\Method $method, Nette\DI\PhpGenerator $generator): void
 	{
-		foreach ($args as &$v) {
-			if (is_string($v) && $v && $v[0] === '$') {
-				$v = new Php\Literal($v);
-			}
-		}
-	}
-
-
-	public function generateMethod(Php\Method $method, Nette\DI\PhpGenerator $generator): void
-	{
-		$class = (new Php\ClassType)
+		$class = (new Nette\PhpGenerator\ClassType)
 			->addImplement($this->getType());
 
 		$class->addProperty('container')
@@ -257,16 +272,16 @@ final class FactoryDefinition extends Definition
 			->addParameter('container')
 			->setType($generator->getClassName());
 
-		$methodCreate = $class->addMethod(self::MethodCreate);
+		$methodCreate = $class->addMethod(self::METHOD_CREATE);
 		$this->resultDefinition->generateMethod($methodCreate, $generator);
 		$body = $methodCreate->getBody();
 		$body = str_replace('$this', '$this->container', $body);
 		$body = str_replace('$this->container->container', '$this->container', $body);
 
-		$rm = new \ReflectionMethod($this->getType(), self::MethodCreate);
+		$rm = new \ReflectionMethod($this->getType(), self::METHOD_CREATE);
 		$methodCreate
 			->setParameters($generator->convertParameters($this->parameters))
-			->setReturnType((string) (Type::fromReflection($rm) ?? $this->getResultType()))
+			->setReturnType(Reflection::getReturnType($rm) ?: $this->getResultType())
 			->setBody($body);
 
 		$method->setBody('return new class ($this) ' . $class . ';');

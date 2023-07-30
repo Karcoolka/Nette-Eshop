@@ -14,15 +14,14 @@ use Nette;
 
 /**
  * Provides objects to work as array.
- * @template T
  */
 class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \IteratorAggregate
 {
 	/**
 	 * Transforms array to ArrayHash.
-	 * @param  array<T>  $array
+	 * @return static
 	 */
-	public static function from(array $array, bool $recursive = true): static
+	public static function from(array $array, bool $recursive = true)
 	{
 		$obj = new static;
 		foreach ($array as $key => $value) {
@@ -30,20 +29,16 @@ class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \Iterator
 				? static::from($value, true)
 				: $value;
 		}
-
 		return $obj;
 	}
 
 
 	/**
 	 * Returns an iterator over all items.
-	 * @return \Iterator<int|string, T>
 	 */
-	public function &getIterator(): \Iterator
+	public function getIterator(): \RecursiveArrayIterator
 	{
-		foreach ((array) $this as $key => $foo) {
-			yield $key => $this->$key;
-		}
+		return new \RecursiveArrayIterator((array) $this);
 	}
 
 
@@ -59,14 +54,13 @@ class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \Iterator
 	/**
 	 * Replaces or appends a item.
 	 * @param  string|int  $key
-	 * @param  T  $value
+	 * @param  mixed  $value
 	 */
 	public function offsetSet($key, $value): void
 	{
 		if (!is_scalar($key)) { // prevents null
 			throw new Nette\InvalidArgumentException(sprintf('Key must be either a string or an integer, %s given.', gettype($key)));
 		}
-
 		$this->$key = $value;
 	}
 
@@ -74,9 +68,8 @@ class ArrayHash extends \stdClass implements \ArrayAccess, \Countable, \Iterator
 	/**
 	 * Returns a item.
 	 * @param  string|int  $key
-	 * @return T
+	 * @return mixed
 	 */
-	#[\ReturnTypeWillChange]
 	public function offsetGet($key)
 	{
 		return $this->$key;

@@ -81,7 +81,6 @@ class Structure implements IStructure
 					return $column['name'];
 				}
 			}
-
 			return null;
 		}
 
@@ -121,7 +120,7 @@ class Structure implements IStructure
 	}
 
 
-	public function getHasManyReference(string $table, ?string $targetTable = null): ?array
+	public function getHasManyReference(string $table, string $targetTable = null): ?array
 	{
 		$this->needStructure();
 		$table = $this->resolveFQTableName($table);
@@ -142,7 +141,7 @@ class Structure implements IStructure
 	}
 
 
-	public function getBelongsToReference(string $table, ?string $column = null): ?array
+	public function getBelongsToReference(string $table, string $column = null): ?array
 	{
 		$this->needStructure();
 		$table = $this->resolveFQTableName($table);
@@ -249,7 +248,6 @@ class Structure implements IStructure
 			$tmp = &$fksColumnsCounts[$foreignKey['name']];
 			$tmp++;
 		}
-
 		usort($foreignKeys, function ($a, $b) use ($fksColumnsCounts): int {
 			return $fksColumnsCounts[$b['name']] <=> $fksColumnsCounts[$a['name']];
 		});

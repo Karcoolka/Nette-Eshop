@@ -1,15 +1,40 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\CoreModule\Presenters;
 
 use App\Presenters\BasePresenter;
 use Nette\Application\UI\Form;
+use Nette\Mail\Mailer;
 use Nette\Mail\Message;
 use Nette\Mail\SendException;
 use Nette\Utils\ArrayHash;
 
+/**
+ * Presenter pro kontaktní formulář.
+ * @package App\CoreModule\Presenters
+ */
 class ContactPresenter extends BasePresenter
 {
+    /** @var string Kontaktní email, na který se budou posílat emaily z kontaktního formuláře. */
+    private string $contactEmail;
+
+    /** @var Mailer Služba Nette pro odesílání emailů. */
+    private Mailer $mailer;
+
+    /**
+     * Konstruktor s nastavením kontaktního emailu a injektovanou Nette službou pro odesílání emailů.
+     * @param string  $contactEmail kontaktní email
+     * @param Mailer $mailer       automaticky injektovaná Nette služba pro odesílání emailů
+     */
+    public function __construct(string $contactEmail, Mailer $mailer)
+    {
+        parent::__construct();
+        $this->contactEmail = $contactEmail;
+        $this->mailer = $mailer;
+    }
+
     /**
      * Vytváří a vrací kontaktní formulář.
      * @return Form kontaktní formulář

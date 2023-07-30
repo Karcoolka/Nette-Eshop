@@ -56,7 +56,6 @@ class UserPanel implements Tracy\IBarPanel
 		if (session_status() !== PHP_SESSION_ACTIVE) {
 			return null;
 		}
-
 		return Nette\Utils\Helpers::capture(function () {
 			$user = $this->user;
 			require __DIR__ . '/templates/UserPanel.panel.phtml';

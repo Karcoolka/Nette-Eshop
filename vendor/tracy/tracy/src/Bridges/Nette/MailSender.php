@@ -20,20 +20,24 @@ class MailSender
 {
 	use Nette\SmartObject;
 
-	private Nette\Mail\IMailer $mailer;
+	/** @var Nette\Mail\IMailer */
+	private $mailer;
 
 	/** @var string|null sender of email notifications */
-	private ?string $fromEmail = null;
+	private $fromEmail;
 
 
-	public function __construct(Nette\Mail\IMailer $mailer, ?string $fromEmail = null)
+	public function __construct(Nette\Mail\IMailer $mailer, string $fromEmail = null)
 	{
 		$this->mailer = $mailer;
 		$this->fromEmail = $fromEmail;
 	}
 
 
-	public function send(mixed $message, string $email): void
+	/**
+	 * @param  mixed  $message
+	 */
+	public function send($message, string $email): void
 	{
 		$host = preg_replace('#[^\w.-]+#', '', $_SERVER['SERVER_NAME'] ?? php_uname('n'));
 
@@ -42,11 +46,9 @@ class MailSender
 		if ($this->fromEmail || Nette\Utils\Validators::isEmail("noreply@$host")) {
 			$mail->setFrom($this->fromEmail ?: "noreply@$host");
 		}
-
 		foreach (explode(',', $email) as $item) {
 			$mail->addTo(trim($item));
 		}
-
 		$mail->setSubject('PHP: An error occurred on the server ' . $host);
 		$mail->setBody(Tracy\Logger::formatMessage($message) . "\n\nsource: " . Tracy\Helpers::getSource());
 

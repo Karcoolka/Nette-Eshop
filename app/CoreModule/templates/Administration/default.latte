@@ -1,0 +1,11 @@
+{define title}Administrace webu{/define}
+{define description}Administrace webu.{/define}
+{block content}
+<p>Vítejte v administraci! Jste přihlášeni jako <b>{$username}</b>.</p>
+<nav class="button-bar">
+	{if $admin}
+		<a n:href="Article:editor">Editor článků</a>
+		<a n:href="Article:list">Seznam článků</a>
+	{/if}
+	<a n:href="logout">Odhlásit</a>
+</nav>

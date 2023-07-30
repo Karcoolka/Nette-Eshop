@@ -36,14 +36,13 @@ final class ComponentReflection extends \ReflectionClass
 	 * Returns array of classes persistent parameters. They have public visibility,
 	 * are non-static and have annotation @persistent.
 	 */
-	public function getPersistentParams(?string $class = null): array
+	public function getPersistentParams(string $class = null): array
 	{
 		$class = $class ?? $this->getName();
 		$params = &self::$ppCache[$class];
 		if ($params !== null) {
 			return $params;
 		}
-
 		$params = [];
 		if (is_subclass_of($class, Component::class)) {
 			$isPresenter = is_subclass_of($class, Presenter::class);
@@ -61,7 +60,6 @@ final class ComponentReflection extends \ReflectionClass
 					];
 				}
 			}
-
 			foreach ($this->getPersistentParams(get_parent_class($class)) as $name => $param) {
 				if (isset($params[$name])) {
 					$params[$name]['since'] = $param['since'];
@@ -70,32 +68,27 @@ final class ComponentReflection extends \ReflectionClass
 				}
 			}
 		}
-
 		return $params;
 	}
 
 
-	public function getPersistentComponents(?string $class = null): array
+	public function getPersistentComponents(string $class = null): array
 	{
 		$class = $class ?? $this->getName();
 		$components = &self::$pcCache[$class];
 		if ($components !== null) {
 			return $components;
 		}
-
 		$components = [];
 		if (is_subclass_of($class, Presenter::class)) {
 			foreach ($class::getPersistentComponents() as $name => $meta) {
 				if (is_string($meta)) {
 					$name = $meta;
 				}
-
 				$components[$name] = ['since' => $class];
 			}
-
 			$components = $this->getPersistentComponents(get_parent_class($class)) + $components;
 		}
-
 		return $components;
 	}
 
@@ -155,7 +148,6 @@ final class ComponentReflection extends \ReflectionClass
 			} catch (\ReflectionException $e) {
 			}
 		}
-
 		return $cache;
 	}
 
@@ -191,7 +183,6 @@ final class ComponentReflection extends \ReflectionClass
 				));
 			}
 		}
-
 		return $res;
 	}
 
@@ -206,7 +197,6 @@ final class ComponentReflection extends \ReflectionClass
 				return true;
 			}
 		}
-
 		return false;
 	}
 
@@ -216,7 +206,7 @@ final class ComponentReflection extends \ReflectionClass
 	 */
 	private static function convertSingleType(&$val, string $type): bool
 	{
-		$builtin = [
+		static $builtin = [
 			'string' => 1, 'int' => 1, 'float' => 1, 'bool' => 1, 'array' => 1, 'object' => 1,
 			'callable' => 1, 'iterable' => 1, 'void' => 1, 'null' => 1, 'mixed' => 1,
 			'boolean' => 1, 'integer' => 1, 'double' => 1, 'scalar' => 1,
@@ -248,16 +238,13 @@ final class ComponentReflection extends \ReflectionClass
 			if ($type === 'double' || $type === 'float') {
 				$tmp = preg_replace('#\.0*$#D', '', $tmp);
 			}
-
 			$orig = $tmp;
 			settype($tmp, $type);
 			if ($orig !== ($tmp === false ? '0' : (string) $tmp)) {
 				return false; // data-loss occurs
 			}
-
 			$val = $tmp;
 		}
-
 		return true;
 	}
 
@@ -271,8 +258,7 @@ final class ComponentReflection extends \ReflectionClass
 		if (!preg_match_all('#[\s*]@' . preg_quote($name, '#') . '(?:\(\s*([^)]*)\s*\)|\s|$)#', (string) $ref->getDocComment(), $m)) {
 			return null;
 		}
-
-		$tokens = ['true' => true, 'false' => false, 'null' => null];
+		static $tokens = ['true' => true, 'false' => false, 'null' => null];
 		$res = [];
 		foreach ($m[1] as $s) {
 			foreach (preg_split('#\s*,\s*#', $s, -1, PREG_SPLIT_NO_EMPTY) ?: ['true'] as $item) {
@@ -281,7 +267,6 @@ final class ComponentReflection extends \ReflectionClass
 					: $item;
 			}
 		}
-
 		return $res;
 	}
 
@@ -339,7 +324,6 @@ final class ComponentReflection extends \ReflectionClass
 		foreach ($res = parent::getMethods($filter) as $key => $val) {
 			$res[$key] = new MethodReflection($this->getName(), $val->getName());
 		}
-
 		return $res;
 	}
 
@@ -359,7 +343,6 @@ final class ComponentReflection extends \ReflectionClass
 		foreach ($res as $type) {
 			$addTraits($type);
 		}
-
 		return $res;
 	}
 }

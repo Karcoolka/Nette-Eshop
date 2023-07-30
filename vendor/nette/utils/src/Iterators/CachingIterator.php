@@ -28,7 +28,8 @@ class CachingIterator extends \CachingIterator implements \Countable
 {
 	use Nette\SmartObject;
 
-	private int $counter = 0;
+	/** @var int */
+	private $counter = 0;
 
 
 	public function __construct($iterator)
@@ -40,14 +41,13 @@ class CachingIterator extends \CachingIterator implements \Countable
 			do {
 				$iterator = $iterator->getIterator();
 			} while ($iterator instanceof \IteratorAggregate);
-
 			assert($iterator instanceof \Iterator);
 
 		} elseif ($iterator instanceof \Iterator) {
 		} elseif ($iterator instanceof \Traversable) {
 			$iterator = new \IteratorIterator($iterator);
 		} else {
-			throw new Nette\InvalidArgumentException(sprintf('Invalid argument passed to %s; array or Traversable expected, %s given.', self::class, is_object($iterator) ? $iterator::class : gettype($iterator)));
+			throw new Nette\InvalidArgumentException(sprintf('Invalid argument passed to %s; array or Traversable expected, %s given.', self::class, is_object($iterator) ? get_class($iterator) : gettype($iterator)));
 		}
 
 		parent::__construct($iterator, 0);
@@ -57,7 +57,7 @@ class CachingIterator extends \CachingIterator implements \Countable
 	/**
 	 * Is the current element the first one?
 	 */
-	public function isFirst(?int $gridWidth = null): bool
+	public function isFirst(int $gridWidth = null): bool
 	{
 		return $this->counter === 1 || ($gridWidth && $this->counter !== 0 && (($this->counter - 1) % $gridWidth) === 0);
 	}
@@ -66,7 +66,7 @@ class CachingIterator extends \CachingIterator implements \Countable
 	/**
 	 * Is the current element the last one?
 	 */
-	public function isLast(?int $gridWidth = null): bool
+	public function isLast(int $gridWidth = null): bool
 	{
 		return !$this->hasNext() || ($gridWidth && ($this->counter % $gridWidth) === 0);
 	}
@@ -147,8 +147,9 @@ class CachingIterator extends \CachingIterator implements \Countable
 
 	/**
 	 * Returns the next key.
+	 * @return mixed
 	 */
-	public function getNextKey(): mixed
+	public function getNextKey()
 	{
 		return $this->getInnerIterator()->key();
 	}
@@ -156,8 +157,9 @@ class CachingIterator extends \CachingIterator implements \Countable
 
 	/**
 	 * Returns the next element.
+	 * @return mixed
 	 */
-	public function getNextValue(): mixed
+	public function getNextValue()
 	{
 		return $this->getInnerIterator()->current();
 	}

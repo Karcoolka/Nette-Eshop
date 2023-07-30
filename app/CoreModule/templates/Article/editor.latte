@@ -1,0 +1,15 @@
+{define title}Editor{/define}
+{define description}Editor článků.{/define}
+{block content}
+        {* Formulář pro editaci. *}
+        {include $formPath, form => editorForm}
+{/block}
+
+{block scripts}
+{include parent}
+<script type="text/javascript" src="{$basePath}/js/tinymce/tinymce.min.js"></script>
+<script type="text/javascript" src="{$basePath}/js/tinymce.init.js"></script>
+<script type="text/javascript">
+    initTinyMce("content");
+</script>
+{/block}

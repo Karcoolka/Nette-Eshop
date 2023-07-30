@@ -10,8 +10,8 @@ declare(strict_types=1);
 namespace Latte\Bridges\Tracy;
 
 use Latte\Engine;
-use Latte\Extension;
 use Latte\Runtime\Template;
+use Nette;
 use Tracy;
 
 
@@ -20,48 +20,34 @@ use Tracy;
  */
 class LattePanel implements Tracy\IBarPanel
 {
-	public bool $dumpParameters = true;
+	use Nette\SmartObject;
+
+	/** @var bool */
+	public $dumpParameters = true;
 
 	/** @var Template[] */
-	private array $templates = [];
-	private array $list;
-	private ?string $name = null;
+	private $templates = [];
+
+	/** @var array */
+	private $list;
+
+	/** @var string|null */
+	private $name;
 
 
-	/** @deprecated use TracyExtension */
-	public static function initialize(Engine $latte, ?string $name = null, ?Tracy\Bar $bar = null): void
+	public static function initialize(Engine $latte, string $name = null, Tracy\Bar $bar = null): void
 	{
-		$bar ??= Tracy\Debugger::getBar();
+		$bar = $bar ?? Tracy\Debugger::getBar();
 		$bar->addPanel(new self($latte, $name));
 	}
 
 
-	/** @deprecated use TracyExtension */
-	public function __construct(?Engine $latte = null, ?string $name = null)
+	public function __construct(Engine $latte, string $name = null)
 	{
 		$this->name = $name;
-		if ($latte) {
-			$latte->addExtension(
-				new class ($this->templates) extends Extension {
-					public function __construct(
-						private array &$templates,
-					) {
-					}
-
-
-					public function beforeRender(Template $template): void
-					{
-						$this->templates[] = $template;
-					}
-				},
-			);
-		}
-	}
-
-
-	public function addTemplate(Template $template): void
-	{
-		$this->templates[] = $template;
+		$latte->probe = function (Template $template): void {
+			$this->templates[] = $template;
+		};
 	}
 
 
@@ -74,7 +60,7 @@ class LattePanel implements Tracy\IBarPanel
 			return null;
 		}
 
-		return Tracy\Helpers::capture(function () {
+		return Nette\Utils\Helpers::capture(function () {
 			$name = $this->name ?? basename(reset($this->templates)->getName());
 			require __DIR__ . '/templates/LattePanel.tab.phtml';
 		});
@@ -89,7 +75,7 @@ class LattePanel implements Tracy\IBarPanel
 		$this->list = [];
 		$this->buildList($this->templates[0]);
 
-		return Tracy\Helpers::capture(function () {
+		return Nette\Utils\Helpers::capture(function () {
 			$list = $this->list;
 			$dumpParameters = $this->dumpParameters;
 			require __DIR__ . '/templates/LattePanel.panel.phtml';
@@ -97,7 +83,7 @@ class LattePanel implements Tracy\IBarPanel
 	}
 
 
-	private function buildList(Template $template, int $depth = 0, int $count = 1): void
+	private function buildList(Template $template, int $depth = 0, int $count = 1)
 	{
 		$this->list[] = (object) [
 			'template' => $template,

@@ -29,9 +29,6 @@ final class CookieStorage implements Nette\Security\UserStorage
 	/** @var Http\IResponse */
 	private $response;
 
-	/** @var ?string */
-	private $uid;
-
 	/** @var string */
 	private $cookieName = 'userid';
 
@@ -58,24 +55,18 @@ final class CookieStorage implements Nette\Security\UserStorage
 		if (strlen($uid) < self::MIN_LENGTH) {
 			throw new \LogicException('UID is too short.');
 		}
-
-		$this->uid = $uid;
 		$this->response->setCookie(
 			$this->cookieName,
 			$uid,
 			$this->cookieExpiration,
 			null,
-			$this->cookieDomain,
-			null,
-			true,
-			$this->cookieSameSite
+			$this->cookieDomain
 		);
 	}
 
 
 	public function clearAuthentication(bool $clearIdentity): void
 	{
-		$this->uid = '';
 		$this->response->deleteCookie(
 			$this->cookieName,
 			null,
@@ -86,14 +77,11 @@ final class CookieStorage implements Nette\Security\UserStorage
 
 	public function getState(): array
 	{
-		if ($this->uid === null) {
-			$uid = $this->request->getCookie($this->cookieName);
-			$this->uid = is_string($uid) && strlen($uid) >= self::MIN_LENGTH ? $uid : '';
-		}
-
-		return $this->uid
-			? [true, new Nette\Security\SimpleIdentity($this->uid), null]
-			: [false, null, null];
+		$uid = $this->request->getCookie($this->cookieName);
+		$identity = is_string($uid) && strlen($uid) >= self::MIN_LENGTH
+			? new Nette\Security\SimpleIdentity($uid)
+			: null;
+		return [(bool) $identity, $identity, null];
 	}
 
 
@@ -104,9 +92,9 @@ final class CookieStorage implements Nette\Security\UserStorage
 
 
 	public function setCookieParameters(
-		?string $name = null,
-		?string $domain = null,
-		?string $sameSite = null
+		string $name = null,
+		string $domain = null,
+		string $sameSite = null
 	) {
 		$this->cookieName = $name ?? $this->cookieName;
 		$this->cookieDomain = $domain ?? $this->cookieDomain;

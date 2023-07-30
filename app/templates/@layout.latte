@@ -1,0 +1,111 @@
+{**
+ * @param string   $basePath cesta k souborům ve složce www/
+ * @param array    $flashes  flash zprávy poslané z presenterů
+ *}
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{include description|striptags}">
+
+    <title>{include title|striptags}</title>
+
+    {block css}
+    <link rel="stylesheet" href="{$basePath}/css/style.css">
+    <link rel="stylesheet" href="{$basePath}/css/forms.css">
+
+    <!-- Bootstrap CSS -->
+    <link href="{$basePath}/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- jQuery UI CSS -->
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/themes/smoothness/jquery-ui.css">
+    {/block}
+
+    {block head}{/block}
+</head>
+
+<body>
+<!-- Navigace -->
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container-fluid">
+
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" n:href=":Core:Article:default 'uvod'">{$domain}</a>
+        </div>
+
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav">
+                <li><a n:href=":Core:Article:list">Seznam článků</a></li>
+                <li><a n:href=":Core:Contact:">Kontakt</a></li>
+            </ul>
+        </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
+</nav>
+
+<!-- Obsah stránky -->
+<div class="container">
+    <div n:foreach="$flashes as $flash" n:class="alert, 'alert-'.$flash->type" role="alert">{$flash->message}</div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <article>
+                <header>
+                    <h1>{include title}</h1>
+                </header>
+                <section>
+                    {include content} {* Vložení obsahu do šablony. *}
+                </section>
+            </article>
+        </div>
+    </div>
+</div>
+
+<!-- Patička -->
+<div class="container">
+    <hr>
+    <footer>
+        <div class="row">
+            <div class="col-lg-12">
+                <p>
+                    Ukázkový tutoriál pro
+                    <a href="http://nette.org/cs/" target="_blank">Nette Framework</a> z programátorské sociální sítě
+                    <a href="http://www.itnetwork.cz" target="_blank">itnetwork.cz</a>.
+                    <a n:href=":Core:Administration:">Administrace</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+</div>
+
+{block scripts}
+    <!-- HTML5 Shim a Respond.js pro podporu IE8. -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- jQuery a jQuery UI -->
+    <script src="{$basePath}/js/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="{$basePath}/js/bootstrap.min.js"></script>
+
+    <!-- Další JavaScript -->
+    <script>
+        // Řešení konfliktu jQuery a Bootstrapu.
+        $.fn.bootstrapBtn = $.fn.button.noConflict();
+    </script>
+            <script src="{$basePath}/js/confirm.js"></script>
+{/block}
+</body>
+</html>

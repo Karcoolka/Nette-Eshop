@@ -16,52 +16,29 @@ namespace Nette\Neon;
  */
 final class Neon
 {
-	public const Chain = '!!chain';
-
-	/** @deprecated use Neon::Chain */
-	public const CHAIN = self::Chain;
-
-	/** @deprecated use parameter $blockMode */
 	public const BLOCK = Encoder::BLOCK;
+
+	public const CHAIN = '!!chain';
 
 
 	/**
-	 * Returns value converted to NEON.
+	 * Returns value converted to NEON. The flag can be Neon::BLOCK, which will create multiline output.
 	 */
-	public static function encode(mixed $value, bool $blockMode = false, string $indentation = "\t"): string
+	public static function encode($value, int $flags = 0): string
 	{
 		$encoder = new Encoder;
-		$encoder->blockMode = $blockMode;
-		$encoder->indentation = $indentation;
-		return $encoder->encode($value);
+		return $encoder->encode($value, $flags);
 	}
 
 
 	/**
 	 * Converts given NEON to PHP value.
+	 * Returns scalars, arrays, DateTimeImmutable and Entity objects.
+	 * @return mixed
 	 */
-	public static function decode(string $input): mixed
+	public static function decode(string $input)
 	{
 		$decoder = new Decoder;
 		return $decoder->decode($input);
-	}
-
-
-	/**
-	 * Converts given NEON file to PHP value.
-	 */
-	public static function decodeFile(string $file): mixed
-	{
-		$input = @file_get_contents($file); // @ is escalated to exception
-		if ($input === false) {
-			$error = preg_replace('#^\w+\(.*?\): #', '', error_get_last()['message'] ?? '');
-			throw new Exception("Unable to read file '$file'. $error");
-		}
-
-		if (substr($input, 0, 3) === "\u{FEFF}") { // BOM
-			$input = substr($input, 3);
-		}
-
-		return self::decode($input);
 	}
 }

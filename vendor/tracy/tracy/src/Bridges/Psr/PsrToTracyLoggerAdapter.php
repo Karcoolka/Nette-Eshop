@@ -19,7 +19,7 @@ use Tracy;
 class PsrToTracyLoggerAdapter implements Tracy\ILogger
 {
 	/** Tracy logger level to PSR-3 log level mapping */
-	private const LevelMap = [
+	private const LEVEL_MAP = [
 		Tracy\ILogger::DEBUG => Psr\Log\LogLevel::DEBUG,
 		Tracy\ILogger::INFO => Psr\Log\LogLevel::INFO,
 		Tracy\ILogger::WARNING => Psr\Log\LogLevel::WARNING,
@@ -28,17 +28,20 @@ class PsrToTracyLoggerAdapter implements Tracy\ILogger
 		Tracy\ILogger::CRITICAL => Psr\Log\LogLevel::CRITICAL,
 	];
 
+	/** @var Psr\Log\LoggerInterface */
+	private $psrLogger;
 
-	public function __construct(
-		private Psr\Log\LoggerInterface $psrLogger,
-	) {
+
+	public function __construct(Psr\Log\LoggerInterface $psrLogger)
+	{
+		$this->psrLogger = $psrLogger;
 	}
 
 
-	public function log(mixed $value, string $level = self::INFO)
+	public function log($value, $level = self::INFO)
 	{
 		if ($value instanceof \Throwable) {
-			$message = get_debug_type($value) . ': ' . $value->getMessage() . ($value->getCode() ? ' #' . $value->getCode() : '') . ' in ' . $value->getFile() . ':' . $value->getLine();
+			$message = Tracy\Helpers::getClass($value) . ': ' . $value->getMessage() . ($value->getCode() ? ' #' . $value->getCode() : '') . ' in ' . $value->getFile() . ':' . $value->getLine();
 			$context = ['exception' => $value];
 
 		} elseif (!is_string($value)) {
@@ -51,9 +54,9 @@ class PsrToTracyLoggerAdapter implements Tracy\ILogger
 		}
 
 		$this->psrLogger->log(
-			self::LevelMap[$level] ?? Psr\Log\LogLevel::ERROR,
+			self::LEVEL_MAP[$level] ?? Psr\Log\LogLevel::ERROR,
 			$message,
-			$context,
+			$context
 		);
 	}
 }

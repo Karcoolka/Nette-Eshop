@@ -20,10 +20,7 @@ use Nette\Utils\Reflection;
  */
 final class InjectExtension extends DI\CompilerExtension
 {
-	public const TagInject = 'nette.inject';
-
-	/** @deprecated use InjectExtension::TagInject */
-	public const TAG_INJECT = self::TagInject;
+	public const TAG_INJECT = 'nette.inject';
 
 
 	public function getConfigSchema(): Nette\Schema\Schema
@@ -35,7 +32,7 @@ final class InjectExtension extends DI\CompilerExtension
 	public function beforeCompile()
 	{
 		foreach ($this->getContainerBuilder()->getDefinitions() as $def) {
-			if ($def->getTag(self::TagInject)) {
+			if ($def->getTag(self::TAG_INJECT)) {
 				$def = $def instanceof Definitions\FactoryDefinition
 					? $def->getResultDefinition()
 					: $def;
@@ -49,7 +46,7 @@ final class InjectExtension extends DI\CompilerExtension
 
 	private function updateDefinition(Definitions\ServiceDefinition $def): void
 	{
-		$resolvedType = (new DI\Resolver($this->getContainerBuilder()))->resolveEntityType($def->getCreator());
+		$resolvedType = (new DI\Resolver($this->getContainerBuilder()))->resolveEntityType($def->getFactory());
 		$class = is_subclass_of($resolvedType, $def->getType())
 			? $resolvedType
 			: $def->getType();
@@ -65,7 +62,7 @@ final class InjectExtension extends DI\CompilerExtension
 					unset($setups[$key]);
 				}
 			}
-
+			self::checkType($class, $property, $type, $builder);
 			array_unshift($setups, $inject);
 		}
 
@@ -77,7 +74,6 @@ final class InjectExtension extends DI\CompilerExtension
 					unset($setups[$key]);
 				}
 			}
-
 			array_unshift($setups, $inject);
 		}
 
@@ -97,7 +93,6 @@ final class InjectExtension extends DI\CompilerExtension
 				$classes[$name] = (new \ReflectionMethod($class, $name))->getDeclaringClass()->name;
 			}
 		}
-
 		$methods = array_keys($classes);
 		uksort($classes, function (string $a, string $b) use ($classes, $methods): int {
 			return $classes[$a] === $classes[$b]
@@ -115,29 +110,20 @@ final class InjectExtension extends DI\CompilerExtension
 	public static function getInjectProperties(string $class): array
 	{
 		$res = [];
-		foreach ((new \ReflectionClass($class))->getProperties() as $rp) {
-			$name = $rp->getName();
+		foreach (get_class_vars($class) as $name => $foo) {
+			$rp = new \ReflectionProperty($class, $name);
 			$hasAttr = PHP_VERSION_ID >= 80000 && $rp->getAttributes(DI\Attributes\Inject::class);
 			if ($hasAttr || DI\Helpers::parseAnnotation($rp, 'inject') !== null) {
-				if (!$rp->isPublic() || $rp->isStatic()) {
-					trigger_error(sprintf('Property %s for injection must be public and non-static.', Reflection::toString($rp)), E_USER_WARNING);
-					continue;
+				if ($type = Reflection::getPropertyType($rp)) {
+				} elseif (!$hasAttr && ($type = DI\Helpers::parseAnnotation($rp, 'var'))) {
+					if (strpos($type, '|') !== false) {
+						throw new Nette\InvalidStateException('The ' . Reflection::toString($rp) . ' is not expected to have a union type.');
+					}
+					$type = Reflection::expandClassName($type, Reflection::getPropertyDeclaringClass($rp));
 				}
-
-				if (PHP_VERSION_ID >= 80100 && $rp->isReadOnly()) {
-					throw new Nette\InvalidStateException(sprintf('Property %s for injection must not be readonly.', Reflection::toString($rp)));
-				}
-
-				$type = Nette\Utils\Type::fromReflection($rp);
-				if (!$type && !$hasAttr && ($annotation = DI\Helpers::parseAnnotation($rp, 'var'))) {
-					$annotation = Reflection::expandClassName($annotation, Reflection::getPropertyDeclaringClass($rp));
-					$type = Nette\Utils\Type::fromString($annotation);
-				}
-
-				$res[$rp->getName()] = DI\Helpers::ensureClassType($type, 'type of property ' . Reflection::toString($rp));
+				$res[$name] = $type;
 			}
 		}
-
 		ksort($res);
 		return $res;
 	}
@@ -158,7 +144,25 @@ final class InjectExtension extends DI\CompilerExtension
 		}
 
 		foreach (self::getInjectProperties(get_class($service)) as $property => $type) {
+			self::checkType($service, $property, $type, $container);
 			$service->$property = $container->getByType($type);
+		}
+	}
+
+
+	/**
+	 * @param  object|string  $class
+	 * @param  DI\Container|DI\ContainerBuilder|null  $container
+	 */
+	private static function checkType($class, string $name, ?string $type, $container): void
+	{
+		$propName = Reflection::toString(new \ReflectionProperty($class, $name));
+		if (!$type) {
+			throw new Nette\InvalidStateException("Property $propName has no type hint.");
+		} elseif (!class_exists($type) && !interface_exists($type)) {
+			throw new Nette\InvalidStateException("Class or interface '$type' used in type hint at $propName not found. Check type and 'use' statements.");
+		} elseif ($container && !$container->getByType($type, false)) {
+			throw new Nette\DI\MissingServiceException("Service of type $type used in type hint at $propName not found. Did you add it to configuration file?");
 		}
 	}
 }

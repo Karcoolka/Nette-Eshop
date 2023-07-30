@@ -11,7 +11,6 @@ namespace Nette\DI;
 
 use Nette;
 use Nette\Utils\Reflection;
-use Nette\Utils\Type;
 use ReflectionClass;
 use ReflectionMethod;
 
@@ -23,10 +22,7 @@ class DependencyChecker
 {
 	use Nette\SmartObject;
 
-	public const Version = 1;
-
-	/** @deprecated use DependencyChecker::Version */
-	public const VERSION = self::Version;
+	public const VERSION = 1;
 
 	/** @var array of ReflectionClass|\ReflectionFunctionAbstract|string */
 	private $dependencies = [];
@@ -62,12 +58,13 @@ class DependencyChecker
 						$classes[$item] = true;
 					}
 				}
+
 			} elseif ($dep instanceof \ReflectionFunctionAbstract) {
 				$phpFiles[] = $dep->getFileName();
 				$functions[] = rtrim(Reflection::toString($dep), '()');
 
 			} else {
-				throw new Nette\InvalidStateException(sprintf('Unexpected dependency %s', gettype($dep)));
+				throw new Nette\InvalidStateException('Unexpected dependency ' . gettype($dep));
 			}
 		}
 
@@ -76,7 +73,7 @@ class DependencyChecker
 		$hash = self::calculateHash($classes, $functions);
 		$files = @array_map('filemtime', array_combine($files, $files)); // @ - file may not exist
 		$phpFiles = @array_map('filemtime', array_combine($phpFiles, $phpFiles)); // @ - file may not exist
-		return [self::Version, $files, $phpFiles, $classes, $functions, $hash];
+		return [self::VERSION, $files, $phpFiles, $classes, $functions, $hash];
 	}
 
 
@@ -90,13 +87,12 @@ class DependencyChecker
 		array $classes,
 		array $functions,
 		string $hash
-	): bool
-	{
+	): bool {
 		try {
 			$currentFiles = @array_map('filemtime', array_combine($tmp = array_keys($files), $tmp)); // @ - files may not exist
 			$origPhpFiles = $phpFiles;
 			$phpFiles = @array_map('filemtime', array_combine($tmp = array_keys($phpFiles), $tmp)); // @ - files may not exist
-			return $version !== self::Version
+			return $version !== self::VERSION
 				|| $files !== $currentFiles
 				|| ($phpFiles !== $origPhpFiles && $hash !== self::calculateHash($classes, $functions));
 		} catch (\ReflectionException $e) {
@@ -125,12 +121,11 @@ class DependencyChecker
 						$name,
 						$prop->name,
 						$prop->getDocComment(),
-						(string) Type::fromReflection($prop),
+						Reflection::getPropertyTypes($prop),
 						PHP_VERSION_ID >= 80000 ? count($prop->getAttributes(Attributes\Inject::class)) : null,
 					];
 				}
 			}
-
 			foreach ($class->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
 				if ($method->getDeclaringClass() == $class) { // intentionally ==
 					$hash[] = [
@@ -138,7 +133,7 @@ class DependencyChecker
 						$method->name,
 						$method->getDocComment(),
 						self::hashParameters($method),
-						(string) Type::fromReflection($method),
+						Reflection::getReturnTypes($method),
 					];
 				}
 			}
@@ -152,19 +147,17 @@ class DependencyChecker
 				if (isset($flip[$class->name])) {
 					continue;
 				}
-
 				$uses = Reflection::getUseStatements($class);
 			} else {
 				$method = new \ReflectionFunction($name);
 				$uses = null;
 			}
-
 			$hash[] = [
 				$name,
 				$uses,
 				$method->getDocComment(),
 				self::hashParameters($method),
-				(string) Type::fromReflection($method),
+				Reflection::getReturnTypes($method),
 			];
 		}
 
@@ -178,14 +171,13 @@ class DependencyChecker
 		foreach ($method->getParameters() as $param) {
 			$res[] = [
 				$param->name,
-				(string) Type::fromReflection($param),
+				Reflection::getParameterTypes($param),
 				$param->isVariadic(),
 				$param->isDefaultValueAvailable()
-					? is_object($tmp = Reflection::getParameterDefaultValue($param)) ? ['object' => get_class($tmp)] : ['value' => $tmp]
+					? [Reflection::getParameterDefaultValue($param)]
 					: null,
 			];
 		}
-
 		return $res;
 	}
 }

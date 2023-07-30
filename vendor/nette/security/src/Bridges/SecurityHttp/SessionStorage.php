@@ -31,12 +31,6 @@ final class SessionStorage implements Nette\Security\UserStorage
 	/** @var SessionSection */
 	private $sessionSection;
 
-	/** @var ?int */
-	private $expireTime;
-
-	/** @var bool */
-	private $expireIdentity = false;
-
 
 	public function __construct(Session $sessionHandler)
 	{
@@ -46,12 +40,11 @@ final class SessionStorage implements Nette\Security\UserStorage
 
 	public function saveAuthentication(IIdentity $identity): void
 	{
-		$section = $this->getSessionSection();
-		$section->set('authenticated', true);
-		$section->set('reason', null);
-		$section->set('authTime', time()); // informative value
-		$section->set('identity', $identity);
-		$this->setupExpiration();
+		$section = $this->getSessionSection(true);
+		$section->authenticated = true;
+		$section->reason = null;
+		$section->authTime = time(); // informative value
+		$section->identity = $identity;
 
 		// Session Fixation defence
 		$this->sessionHandler->regenerateId();
@@ -60,12 +53,12 @@ final class SessionStorage implements Nette\Security\UserStorage
 
 	public function clearAuthentication(bool $clearIdentity): void
 	{
-		$section = $this->getSessionSection();
-		$section->set('authenticated', false);
-		$section->set('reason', self::LOGOUT_MANUAL);
-		$section->set('authTime', null);
+		$section = $this->getSessionSection(true);
+		$section->authenticated = false;
+		$section->reason = self::LOGOUT_MANUAL;
+		$section->authTime = null;
 		if ($clearIdentity === true) {
-			$section->set('identity', null);
+			$section->identity = null;
 		}
 
 		// Session Fixation defence
@@ -75,36 +68,27 @@ final class SessionStorage implements Nette\Security\UserStorage
 
 	public function getState(): array
 	{
-		$section = $this->getSessionSection();
-		return $section
-			? [(bool) $section->get('authenticated'), $section->get('identity'), $section->get('reason')]
+		$session = $this->getSessionSection(false);
+		return $session
+			? [(bool) $session->authenticated, $session->identity, $session->reason]
 			: [false, null, null];
 	}
 
 
 	public function setExpiration(?string $time, bool $clearIdentity = false): void
 	{
-		$this->expireTime = $time ? (int) Nette\Utils\DateTime::from($time)->format('U') : null;
-		$this->expireIdentity = $clearIdentity;
+		$section = $this->getSessionSection(true);
+		if ($time) {
+			$time = Nette\Utils\DateTime::from($time)->format('U');
+			$section->expireTime = $time;
+			$section->expireDelta = $time - time();
 
-		if ($this->sessionSection && $this->sessionSection->get('authenticated')) {
-			$this->setupExpiration();
-		}
-	}
-
-
-	private function setupExpiration(): void
-	{
-		$section = $this->sessionSection;
-		if ($this->expireTime) {
-			$section->set('expireTime', $this->expireTime);
-			$section->set('expireDelta', $this->expireTime - time());
 		} else {
-			$section->remove(['expireTime', 'expireDelta']);
+			unset($section->expireTime, $section->expireDelta);
 		}
 
-		$section->set('expireIdentity', $this->expireIdentity);
-		$section->setExpiration((string) $this->expireTime, 'foo'); // time check
+		$section->expireIdentity = (bool) $clearIdentity;
+		$section->setExpiration($time, 'foo'); // time check
 	}
 
 
@@ -118,7 +102,6 @@ final class SessionStorage implements Nette\Security\UserStorage
 			$this->namespace = $namespace;
 			$this->sessionSection = null;
 		}
-
 		return $this;
 	}
 
@@ -135,32 +118,35 @@ final class SessionStorage implements Nette\Security\UserStorage
 	/**
 	 * Returns and initializes $this->sessionSection.
 	 */
-	protected function getSessionSection(): ?SessionSection
+	protected function getSessionSection(bool $need): ?SessionSection
 	{
 		if ($this->sessionSection !== null) {
 			return $this->sessionSection;
 		}
 
+		if (!$need && !$this->sessionHandler->exists()) {
+			return null;
+		}
+
 		$this->sessionSection = $section = $this->sessionHandler->getSection('Nette.Http.UserStorage/' . $this->namespace);
 
-		if (!$section->get('identity') instanceof IIdentity || !is_bool($section->get('authenticated'))) {
+		if (!$section->identity instanceof IIdentity || !is_bool($section->authenticated)) {
 			$section->remove();
 		}
 
-		if ($section->get('authenticated') && $section->get('expireDelta') > 0) { // check time expiration
-			if ($section->get('expireTime') < time()) {
-				$section->set('reason', self::LOGOUT_INACTIVITY);
-				$section->set('authenticated', false);
-				if ($section->get('expireIdentity')) {
-					$section->remove('identity');
+		if ($section->authenticated && $section->expireDelta > 0) { // check time expiration
+			if ($section->expireTime < time()) {
+				$section->reason = self::LOGOUT_INACTIVITY;
+				$section->authenticated = false;
+				if ($section->expireIdentity) {
+					unset($section->identity);
 				}
 			}
-
-			$section->set('expireTime', time() + $section->expireDelta); // sliding expiration
+			$section->expireTime = time() + $section->expireDelta; // sliding expiration
 		}
 
-		if (!$section->get('authenticated')) {
-			$section->remove(['expireTime', 'expireDelta', 'expireIdentity', 'authTime']);
+		if (!$section->authenticated) {
+			unset($section->expireTime, $section->expireDelta, $section->expireIdentity, $section->authTime);
 		}
 
 		return $this->sessionSection;
